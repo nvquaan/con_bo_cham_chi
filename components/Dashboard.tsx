@@ -24,11 +24,9 @@ const Dashboard: React.FC<DashboardProps> = ({ userID, username, onLogout }) => 
   const [basicAuth, setBasicAuth] = useState('');
   const [accessToken, setAccessToken] = useState('');
 
-  // State cho việc tùy chỉnh thời gian
   const [customTime, setCustomTime] = useState('');
   const [isTimeEditable, setIsTimeEditable] = useState(false);
 
-  // Validate format HH:mm:ss
   const isTimeValid = useMemo(() => {
     const timeRegex = /^([01]\d|2[0-3]):([0-5]\d):([0-5]\d)$/;
     return timeRegex.test(customTime);
@@ -39,7 +37,6 @@ const Dashboard: React.FC<DashboardProps> = ({ userID, username, onLogout }) => 
     out: generateRandomTime(CheckType.OUT)
   }), [selectedDate, lastSubmission]);
 
-  // Cập nhật customTime mỗi khi quẻ giờ đẹp thay đổi hoặc đổi trạng thái In/Out
   useEffect(() => {
     const defaultTime = type === CheckType.IN ? sampleTimes.in : sampleTimes.out;
     setCustomTime(defaultTime);
@@ -62,10 +59,9 @@ const Dashboard: React.FC<DashboardProps> = ({ userID, username, onLogout }) => 
   };
 
   const handleSubmit = async () => {
-    if (!isTimeValid) return; // Bảo vệ thêm nếu UI bị bypass
-
+    if (!isTimeValid) return;
     if (!basicAuth || !accessToken) {
-      setErrorMessage("Cấu hình 'sức mạnh' (Auth/Token) trước khi cày!");
+      setErrorMessage("Cấu hình 'Sức mạnh' trước khi cày!");
       setIsSettingsOpen(true);
       return;
     }
@@ -74,19 +70,15 @@ const Dashboard: React.FC<DashboardProps> = ({ userID, username, onLogout }) => 
     setErrorMessage(null);
     setLastSubmission(null);
     
-    // Sử dụng customTime thay vì currentTimeToSubmit mặc định
     const formattedDate = formatPayloadDate(selectedDate, customTime);
-
     const params = new URLSearchParams({
       userId: userID,
       typeCheckInOut: type.toString(),
       dateCheckInOut: formattedDate
     });
 
-    const fullUrl = `${PROXY_PATH}?${params.toString()}`;
-
     try {
-      const response = await fetch(fullUrl, {
+      const response = await fetch(`${PROXY_PATH}?${params.toString()}`, {
         method: 'POST',
         headers: {
           'Authorization': `Basic ${basicAuth}`,
@@ -96,30 +88,23 @@ const Dashboard: React.FC<DashboardProps> = ({ userID, username, onLogout }) => 
         }
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: Máy chủ từ chối cày.`);
-      }
-      
+      if (!response.ok) throw new Error(`Máy chủ từ chối cày (${response.status})`);
       const result = await response.json();
       
       if (result.resultCode === 1) {
-        const newLog: LogEntry = {
+        setLogs(prev => [{
           userID,
           typeCheckInOut: type,
           dateCheckInOut: formattedDate,
           id: Math.random().toString(36).substr(2, 9),
           timestamp: Date.now()
-        };
-        
-        setLogs(prev => [newLog, ...prev].slice(0, 10));
+        }, ...prev].slice(0, 10));
         setLastSubmission({ time: customTime, type });
       } else {
         throw new Error(result.message || "Thất bại khi chấm công.");
       }
     } catch (error) {
-      console.error("API Error:", error);
-      let msg = error instanceof Error ? error.message : "Sự cố mạng khi cày bừa.";
-      setErrorMessage(msg);
+      setErrorMessage(error instanceof Error ? error.message : "Sự cố mạng.");
     } finally {
       setIsSubmitting(false);
     }
@@ -127,15 +112,17 @@ const Dashboard: React.FC<DashboardProps> = ({ userID, username, onLogout }) => 
 
   const displayDate = () => {
     if (!selectedDate) return 'Chọn ngày';
-    const parts = selectedDate.split('-');
-    if (parts.length !== 3) return selectedDate;
-    const [y, m, d] = parts;
+    const [y, m, d] = selectedDate.split('-');
     return `${d}-${m}-${y}`;
   };
 
   return (
-    <div className="w-full max-w-6xl flex flex-col gap-3 md:gap-5 animate-in fade-in slide-in-from-bottom-4 duration-500 px-3 md:px-6">
+    <div className="w-full max-w-6xl flex flex-col gap-6 md:gap-8 px-4 md:px-8 py-4">
       
+      {/* Background Decor - Neo Brutalist */}
+      <div className="fixed top-0 right-0 w-64 h-64 bg-amber-400 border-b-4 border-l-4 border-slate-900 opacity-10 -z-10 rotate-12 translate-x-32 -translate-y-32" />
+      <div className="fixed bottom-0 left-0 w-48 h-48 bg-orange-500 border-t-4 border-r-4 border-slate-900 opacity-10 -z-10 -rotate-12 -translate-x-24 translate-y-24" />
+
       {/* Calendar Modal */}
       {isCalendarOpen && (
         <CalendarModal 
@@ -147,43 +134,38 @@ const Dashboard: React.FC<DashboardProps> = ({ userID, username, onLogout }) => 
 
       {/* Settings Modal */}
       {isSettingsOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white w-full max-w-[360px] rounded-[1.5rem] md:rounded-[2rem] shadow-2xl p-6 md:p-8 border border-slate-100 overflow-hidden text-left">
-            <div className="flex justify-between items-center mb-4 md:mb-5">
-              <h3 className="text-sm md:text-base font-bold text-slate-800 flex items-center gap-2 uppercase">
-                <Settings className="w-5 h-5 text-amber-500" />
-                Sức mạnh
-              </h3>
-              <button onClick={() => setIsSettingsOpen(false)} className="p-1.5 hover:bg-slate-100 rounded-full transition-colors">
-                <X className="w-5 h-5 text-slate-400" />
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white border-4 border-slate-900 shadow-[10px_10px_0px_0px_#0f172a] w-full max-w-md p-6 md:p-8">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-black text-slate-900 uppercase italic">Cấu hình sức mạnh</h3>
+              <button onClick={() => setIsSettingsOpen(false)} className="p-1 border-2 border-slate-900 hover:bg-slate-100 transition-colors">
+                <X className="w-6 h-6 text-slate-900" />
               </button>
             </div>
 
-            <div className="space-y-4">
-              <div className="space-y-1">
-                <label className="text-[11px] md:text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">BASIC AUTH</label>
+            <div className="space-y-6">
+              <div className="space-y-2">
+                <label className="text-xs font-black text-slate-900 uppercase tracking-widest">BASIC AUTH</label>
                 <input
                   type="password"
-                  placeholder="Basic c3NkX2F..."
                   value={basicAuth}
                   onChange={(e) => setBasicAuth(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none font-mono text-xs md:text-sm"
+                  className="w-full px-4 py-3 bg-slate-50 border-3 border-slate-900 font-mono text-sm focus:outline-none focus:bg-white focus:shadow-[4px_4px_0px_0px_#f59e0b] transition-all"
                 />
               </div>
 
-              <div className="space-y-1">
-                <label className="text-[11px] md:text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">TOKEN</label>
+              <div className="space-y-2">
+                <label className="text-xs font-black text-slate-900 uppercase tracking-widest">TOKEN CÀY THUÊ</label>
                 <textarea
-                  placeholder="Token cày thuê..."
                   value={accessToken}
                   onChange={(e) => setAccessToken(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none font-mono text-xs md:text-sm h-24 resize-none"
+                  className="w-full px-4 py-3 bg-slate-50 border-3 border-slate-900 font-mono text-sm h-32 resize-none focus:outline-none focus:bg-white focus:shadow-[4px_4px_0px_0px_#f59e0b] transition-all"
                 />
               </div>
 
               <button
                 onClick={saveSettings}
-                className="w-full py-3.5 bg-amber-600 text-white text-xs md:text-sm font-bold rounded-xl shadow-lg uppercase tracking-wider active:scale-95 transition-transform"
+                className="w-full py-4 bg-amber-400 border-3 border-slate-900 text-slate-900 font-black uppercase shadow-[6px_6px_0px_0px_#0f172a] hover:shadow-none hover:translate-x-1 hover:translate-y-1 transition-all"
               >
                 Lưu cấu hình
               </button>
@@ -193,88 +175,73 @@ const Dashboard: React.FC<DashboardProps> = ({ userID, username, onLogout }) => 
       )}
 
       {/* Profile Header */}
-      <div className="bg-white rounded-2xl md:rounded-[2.5rem] p-3 md:p-5 shadow-sm border border-slate-100 flex items-center justify-between gap-2 md:gap-4">
-        <div className="flex items-center gap-3 md:gap-5 min-w-0">
-          <div className="w-11 h-11 md:w-16 md:h-16 bg-amber-50 rounded-xl md:rounded-[1.5rem] flex items-center justify-center border border-amber-100 shadow-inner flex-shrink-0">
-            <User className="text-amber-600 w-6 h-6 md:w-9 md:h-9" />
+      <div className="bg-white border-4 border-slate-900 shadow-[8px_8px_0px_0px_#0f172a] p-4 md:p-6 flex items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div className="w-14 h-14 md:w-20 md:h-20 bg-amber-400 border-3 border-slate-900 flex items-center justify-center shadow-[4px_4px_0px_0px_#0f172a]">
+            <User className="text-slate-900 w-8 h-8 md:w-12 md:h-12" />
           </div>
-          <div className="text-left min-w-0 flex flex-col justify-center">
-            <div className="flex items-center gap-1.5 md:gap-2">
-              <h2 className="text-sm md:text-2xl font-bold text-slate-800 truncate leading-none">Con bò: {username}</h2>
-              <button onClick={() => setIsSettingsOpen(true)} className="p-0.5 text-slate-300 hover:text-amber-500 transition-colors">
-                <Settings className="w-3.5 h-3.5 md:w-6 md:h-6" />
+          <div className="text-left">
+            <div className="flex items-center gap-2">
+              <h2 className="text-lg md:text-3xl font-black text-slate-900 uppercase italic">BÒ: {username}</h2>
+              <button onClick={() => setIsSettingsOpen(true)} className="p-1 hover:text-amber-500 transition-colors">
+                <Settings className="w-5 h-5 md:w-7 md:h-7" />
               </button>
             </div>
-            <div className="flex items-center gap-1 mt-1 md:mt-2">
-              <span className="text-[9px] md:text-xs font-bold text-slate-400 uppercase tracking-tighter leading-tight">MÃ SỐ:</span>
-              <span className="text-xs md:text-lg font-bold text-amber-600 truncate leading-tight uppercase tracking-tight">{userID}</span>
-            </div>
+            <p className="text-xs md:text-lg font-black text-slate-500 uppercase tracking-tight">MÃ SỐ: <span className="text-amber-600 underline decoration-2">{userID}</span></p>
           </div>
         </div>
         
-        <div className="flex items-center gap-2 md:gap-4">
-          <div className="w-px h-8 md:h-14 bg-slate-100"></div>
-          <button 
-            onClick={onLogout}
-            className="flex flex-col items-center justify-center px-2 py-0.5 text-slate-400 hover:text-red-500 transition-all"
-          >
-            <LogOut className="w-4 h-4 md:w-7 md:h-7 rotate-180" />
-            <span className="text-[8px] md:text-xs font-bold uppercase tracking-tighter leading-none mt-1 md:mt-2">VỀ CHUỒNG</span>
-          </button>
-        </div>
+        <button 
+          onClick={onLogout}
+          className="group flex flex-col items-center justify-center p-2 md:p-4 border-2 border-slate-900 hover:bg-red-500 hover:text-white transition-all shadow-[4px_4px_0px_0px_#0f172a] hover:shadow-none hover:translate-x-0.5 hover:translate-y-0.5"
+        >
+          <LogOut className="w-6 h-6 md:w-8 md:h-8 rotate-180" />
+          <span className="text-[10px] md:text-xs font-black uppercase mt-1">THOÁT</span>
+        </button>
       </div>
 
-      {/* Main Content Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-8 items-stretch">
+      {/* Main Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
         
-        {/* Left Side: Control Card */}
-        <div className="bg-white rounded-2xl md:rounded-[2.5rem] p-4 md:p-8 shadow-md border border-slate-50 flex flex-col gap-4 md:gap-6 text-left">
-          <div className="flex items-center gap-2 md:gap-3">
-            <div className="w-7 h-7 md:w-10 md:h-10 rounded-full bg-amber-50 flex items-center justify-center border border-amber-100">
-              <Clock className="w-4 h-4 md:w-6 md:h-6 text-amber-600" />
-            </div>
-            <h3 className="text-sm md:text-xl font-bold text-slate-800 uppercase tracking-tight">Xổ số giờ cày</h3>
+        {/* Left Side: Control */}
+        <div className="bg-white border-4 border-slate-900 shadow-[10px_10px_0px_0px_#0f172a] p-6 md:p-10 flex flex-col gap-8">
+          <div className="flex items-center gap-3 border-b-4 border-slate-900 pb-4">
+            <Clock className="w-8 h-8 text-amber-500" />
+            <h3 className="text-2xl font-black text-slate-900 uppercase italic">Gieo giờ đẹp</h3>
           </div>
 
-          <div className="space-y-4 md:space-y-6">
+          <div className="space-y-8">
             {/* Date Input */}
-            <div className="space-y-1.5 md:space-y-2">
-              <label className="text-[11px] md:text-base font-bold text-slate-400 uppercase tracking-widest ml-1">HÔM NAY CÀY NGÀY MẤY?</label>
+            <div className="space-y-3">
+              <label className="text-xs font-black text-slate-900 uppercase tracking-[0.2em] ml-1">Lịch cày bừa</label>
               <div 
                 onClick={() => setIsCalendarOpen(true)}
-                className="relative overflow-hidden rounded-xl md:rounded-[2rem] group cursor-pointer active:scale-[0.99] transition-transform shadow-sm"
+                className="bg-amber-50 border-3 border-slate-900 p-5 md:p-7 flex items-center gap-6 cursor-pointer shadow-[6px_6px_0px_0px_#0f172a] hover:shadow-none hover:translate-x-1 hover:translate-y-1 transition-all"
               >
-                <div className="bg-[#fffbeb] border border-amber-100 rounded-xl md:rounded-[2rem] p-4 md:p-6 flex items-center gap-3 md:gap-6 relative z-0 group-hover:bg-[#fff7d6] transition-colors">
-                  <Calendar className="w-6 h-6 md:w-10 md:h-10 text-amber-500" />
-                  <div className="flex flex-col">
-                    <span className="text-[10px] md:text-sm text-amber-400 font-bold uppercase tracking-widest leading-none mb-1 md:mb-2">Lịch cày bừa</span>
-                    <span className="text-xl md:text-3xl font-bold text-slate-700 tracking-tight">{displayDate()}</span>
-                  </div>
+                <Calendar className="w-8 h-8 md:w-12 md:h-12 text-slate-900" />
+                <div className="flex flex-col">
+                  <span className="text-xs font-black text-amber-600 uppercase mb-1">Ngày đã chọn</span>
+                  <span className="text-2xl md:text-4xl font-black text-slate-900 font-mono tracking-tighter">{displayDate()}</span>
                 </div>
               </div>
             </div>
 
             {/* Type Selector */}
-            <div className="space-y-1.5 md:space-y-2">
-              <label className="text-[11px] md:text-base font-bold text-slate-400 uppercase tracking-widest ml-1">TRẠNG THÁI CÀY</label>
-              <div className="relative flex p-1 md:p-1.5 bg-[#fef3c7] rounded-xl md:rounded-2xl border border-amber-50 shadow-inner">
-                <div 
-                  className={`absolute top-1 md:top-1.5 bottom-1 md:bottom-1.5 w-[calc(50%-4px)] md:w-[calc(50%-6px)] bg-white rounded-lg md:rounded-xl shadow-sm transition-all duration-300 ease-out ${
-                    type === CheckType.OUT ? 'translate-x-full' : 'translate-x-0'
-                  }`}
-                />
+            <div className="space-y-3">
+              <label className="text-xs font-black text-slate-900 uppercase tracking-[0.2em] ml-1">Trạng thái</label>
+              <div className="flex border-3 border-slate-900 p-1 bg-slate-900 gap-1">
                 <button
                   onClick={() => setType(CheckType.IN)}
-                  className={`relative z-10 flex-1 py-2 md:py-3 rounded-lg md:rounded-xl font-bold text-xs md:text-lg transition-colors ${
-                    type === CheckType.IN ? 'text-amber-700' : 'text-amber-400'
+                  className={`flex-1 py-3 md:py-4 text-sm md:text-xl font-black uppercase transition-all ${
+                    type === CheckType.IN ? 'bg-amber-400 text-slate-900' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
                   }`}
                 >
                   Check-in
                 </button>
                 <button
                   onClick={() => setType(CheckType.OUT)}
-                  className={`relative z-10 flex-1 py-2 md:py-3 rounded-lg md:rounded-xl font-bold text-xs md:text-lg transition-colors ${
-                    type === CheckType.OUT ? 'text-amber-700' : 'text-amber-400'
+                  className={`flex-1 py-3 md:py-4 text-sm md:text-xl font-black uppercase transition-all ${
+                    type === CheckType.OUT ? 'bg-amber-400 text-slate-900' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
                   }`}
                 >
                   Check-out
@@ -282,72 +249,44 @@ const Dashboard: React.FC<DashboardProps> = ({ userID, username, onLogout }) => 
               </div>
             </div>
 
-            {/* Time Customization Input */}
-            <div className="space-y-1.5 md:space-y-2">
-              <label className="text-[11px] md:text-base font-bold text-slate-400 uppercase tracking-widest ml-1">GIỜ CÀY CỐ ĐỊNH</label>
-              <div className={`relative flex items-center bg-slate-50 rounded-xl md:rounded-2xl border p-1 md:p-1.5 transition-all ${
+            {/* Time Input */}
+            <div className="space-y-3">
+              <label className="text-xs font-black text-slate-900 uppercase tracking-[0.2em] ml-1">Giờ cố định</label>
+              <div className={`relative flex items-center border-3 border-slate-900 p-1 transition-all ${
                 isTimeEditable 
-                  ? (isTimeValid ? 'border-amber-400 ring-2 ring-amber-100' : 'border-red-400 ring-2 ring-red-100') 
-                  : 'border-slate-100 shadow-inner'
+                  ? (isTimeValid ? 'bg-white shadow-[6px_6px_0px_0px_#f59e0b]' : 'bg-red-50 shadow-[6px_6px_0px_0px_#ef4444]') 
+                  : 'bg-slate-100'
               }`}>
-                <div className="pl-3 md:pl-4">
-                  <Clock className={`w-4 h-4 md:w-5 md:h-5 ${isTimeEditable ? (isTimeValid ? 'text-amber-500' : 'text-red-500') : 'text-slate-400'}`} />
-                </div>
                 <input
                   type="text"
                   value={customTime}
                   onChange={(e) => setCustomTime(e.target.value)}
                   disabled={!isTimeEditable}
-                  placeholder="HH:mm:ss"
-                  className={`flex-1 bg-transparent px-3 py-2 md:py-3 font-mono text-sm md:text-xl font-bold focus:outline-none ${isTimeEditable ? (isTimeValid ? 'text-slate-800' : 'text-red-600') : 'text-slate-500'}`}
+                  className={`flex-1 bg-transparent px-4 py-3 md:py-4 font-mono text-lg md:text-2xl font-black focus:outline-none ${!isTimeValid && isTimeEditable ? 'text-red-600' : 'text-slate-900'}`}
                 />
                 <button
                   onClick={() => setIsTimeEditable(!isTimeEditable)}
-                  className={`p-2 md:p-3 rounded-lg md:rounded-xl transition-all ${isTimeEditable ? (isTimeValid ? 'bg-amber-500 text-white shadow-md' : 'bg-red-500 text-white shadow-md') : 'text-amber-600 hover:bg-amber-50'}`}
+                  className={`p-3 md:p-4 border-l-3 border-slate-900 transition-colors ${isTimeEditable ? 'bg-slate-900 text-white' : 'text-slate-900 hover:bg-white'}`}
                 >
-                  {isTimeEditable ? <Check className="w-4 h-4 md:w-6 md:h-6" /> : <Edit2 className="w-4 h-4 md:w-5 md:h-5" />}
+                  {isTimeEditable ? <Check className="w-6 h-6" /> : <Edit2 className="w-6 h-6" />}
                 </button>
               </div>
               {!isTimeValid && isTimeEditable && (
-                <p className="text-[9px] md:text-xs text-red-500 font-bold ml-1 animate-in fade-in slide-in-from-top-1">Định dạng chuẩn: HH:mm:ss (Ví dụ: 08:30:00)</p>
-              )}
-              <p className="text-[9px] md:text-xs text-slate-400 italic ml-1">* Mặc định là giờ đẹp hệ thống gieo quẻ.</p>
-            </div>
-
-            {/* Status Messages */}
-            <div className="space-y-2 md:space-y-3">
-              {lastSubmission && (
-                <div className="bg-emerald-50 border border-emerald-100 rounded-xl md:rounded-2xl p-3 md:p-4 flex items-start gap-2.5 md:gap-4 animate-in zoom-in-95">
-                  <CheckCircle2 className="text-emerald-500 w-4 h-4 md:w-6 md:h-6 mt-0.5" />
-                  <div>
-                    <p className="text-xs md:text-base font-bold text-emerald-900 leading-tight">Thành công!</p>
-                    <p className="text-[10px] md:text-sm text-emerald-700 mt-1 font-medium">Đã chốt giờ: <span className="font-bold underline decoration-2">{lastSubmission.time}</span></p>
-                  </div>
-                </div>
-              )}
-
-              {errorMessage && (
-                <div className="bg-red-50 border border-red-100 rounded-xl md:rounded-2xl p-3 md:p-4 flex items-start gap-2.5 md:gap-4 animate-in slide-in-from-top-2">
-                  <AlertCircle className="text-red-500 w-4 h-4 md:w-6 md:h-6 mt-0.5" />
-                  <div className="flex-1">
-                    <p className="text-xs md:text-base font-bold text-red-900 leading-tight">Sự cố cày bừa</p>
-                    <p className="text-[10px] md:text-sm text-red-700 mt-1 leading-snug">{errorMessage}</p>
-                  </div>
-                </div>
+                <p className="text-[10px] text-red-600 font-black uppercase mt-1 italic">Định dạng chuẩn: HH:mm:ss</p>
               )}
             </div>
 
-            {/* Action Button */}
+            {/* Submit Button */}
             <button
               onClick={handleSubmit}
               disabled={isSubmitting || !isTimeValid}
-              className="w-full py-3.5 md:py-5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 disabled:from-slate-300 disabled:to-slate-300 text-white text-sm md:text-lg font-bold rounded-xl md:rounded-2xl shadow-lg active:scale-[0.98] transition-all uppercase tracking-widest flex items-center justify-center gap-2 md:gap-4"
+              className="w-full py-5 md:py-6 bg-amber-400 border-4 border-slate-900 text-slate-900 text-lg md:text-2xl font-black uppercase italic tracking-wider shadow-[8px_8px_0px_0px_#0f172a] hover:shadow-none hover:translate-x-1 hover:translate-y-1 active:bg-orange-500 disabled:bg-slate-200 disabled:border-slate-400 disabled:text-slate-400 disabled:shadow-none transition-all flex items-center justify-center gap-4"
             >
               {isSubmitting ? (
-                <div className="w-5 h-5 md:w-7 md:h-7 border-4 border-white/30 border-t-white rounded-full animate-spin" />
+                <div className="w-8 h-8 border-4 border-slate-900/20 border-t-slate-900 rounded-full animate-spin" />
               ) : (
                 <>
-                  <Send className="w-4 h-4 md:w-5 md:h-5" />
+                  <Send className="w-6 h-6 stroke-[3px]" />
                   Chốt đơn đi cày
                 </>
               )}
@@ -355,61 +294,68 @@ const Dashboard: React.FC<DashboardProps> = ({ userID, username, onLogout }) => 
           </div>
         </div>
 
-        {/* Right Side: Logs Card */}
-        <div className="bg-white rounded-2xl md:rounded-[2.5rem] shadow-md border border-slate-50 flex flex-col h-full min-h-[320px] md:min-h-[450px] text-left overflow-hidden relative">
-          <div className="p-4 md:p-8 pb-2 md:pb-4 flex items-center gap-2 md:gap-4">
-            <div className="w-7 h-7 md:w-10 md:h-10 rounded-full bg-slate-50 flex items-center justify-center border border-slate-100">
-              <History className="w-4 h-4 md:w-6 md:h-6 text-slate-400" />
-            </div>
-            <h3 className="text-sm md:text-xl font-bold text-slate-800 uppercase tracking-tight">Nhật ký cày cuốc</h3>
-          </div>
-          
-          <div className="flex-1 overflow-y-auto px-4 md:px-8 py-2 md:py-4 custom-scrollbar pb-28 md:pb-40">
-            {logs.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full text-slate-200 gap-2 md:gap-3 opacity-50 py-6">
-                <History className="w-8 h-8 md:w-16 md:h-16 stroke-[1.5]" />
-                <p className="text-[10px] md:text-base font-bold uppercase tracking-widest">Chưa có lượt cày</p>
-              </div>
-            ) : (
-              <div className="space-y-2 md:space-y-4">
-                {logs.map((log) => (
-                  <div key={log.id} className="p-3 md:p-6 rounded-xl md:rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-between shadow-sm">
-                    <div className="flex flex-col gap-1 md:gap-2">
-                      <span className={`text-[9px] md:text-xs font-bold tracking-widest ${log.typeCheckInOut === CheckType.IN ? 'text-amber-600' : 'text-orange-600'}`}>
-                        {log.typeCheckInOut === CheckType.IN ? 'CHECK-IN' : 'CHECK-OUT'}
-                      </span>
-                      <p className="text-sm md:text-xl font-bold text-slate-700 font-mono leading-none tracking-tight">{log.dateCheckInOut}</p>
-                    </div>
-                    <span className="text-[10px] md:text-sm text-slate-400 font-bold bg-white px-2.5 md:px-5 py-1.5 md:py-2.5 rounded-lg md:rounded-xl border border-slate-50 shadow-sm">
-                      {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Floating Info Box */}
-          <div className="absolute bottom-3 md:bottom-6 right-3 md:right-8 left-3 md:left-8 bg-white/95 backdrop-blur-md border border-amber-100 shadow-xl rounded-xl md:rounded-[1.5rem] p-3 md:p-6 flex flex-col gap-2 md:gap-4 z-10">
-            <div className="flex items-center justify-between border-b border-amber-50 pb-1.5 md:pb-3">
-              <span className="text-[9px] md:text-xs font-bold text-amber-800 uppercase tracking-widest">Quẻ giờ đẹp</span>
-              <div className="w-2 md:w-3 h-2 md:h-3 bg-amber-400 rounded-full animate-pulse"></div>
+        {/* Right Side: Logs */}
+        <div className="flex flex-col gap-8">
+          <div className="bg-white border-4 border-slate-900 shadow-[10px_10px_0px_0px_#0f172a] flex flex-col h-full min-h-[400px]">
+            <div className="p-6 md:p-8 border-b-4 border-slate-900 flex items-center gap-3">
+              <History className="w-8 h-8 text-slate-900" />
+              <h3 className="text-2xl font-black text-slate-900 uppercase italic">Nhật ký cày cuốc</h3>
             </div>
             
-            <div className="flex justify-between items-center px-0.5">
-              <div className="flex flex-col">
-                <span className="text-base md:text-2xl font-bold text-slate-700 font-mono tracking-tighter">{sampleTimes.in}</span>
-                <span className="text-[8px] md:text-[11px] font-bold text-amber-500 uppercase mt-0.5">Vào</span>
+            <div className="flex-1 overflow-y-auto p-6 md:p-8 space-y-4 custom-scrollbar">
+              {logs.length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center opacity-20 py-10">
+                  <History className="w-20 h-20 mb-4" />
+                  <p className="font-black uppercase tracking-widest text-xl">Trống rỗng...</p>
+                </div>
+              ) : (
+                logs.map((log) => (
+                  <div key={log.id} className="p-4 md:p-6 border-3 border-slate-900 shadow-[4px_4px_0px_0px_#0f172a] bg-white flex items-center justify-between group hover:bg-slate-50 transition-colors">
+                    <div className="flex flex-col gap-1">
+                      <span className={`text-[10px] font-black tracking-widest uppercase ${log.typeCheckInOut === CheckType.IN ? 'text-amber-600' : 'text-orange-600'}`}>
+                        {log.typeCheckInOut === CheckType.IN ? '>> VÀO CHUỒNG' : '<< RA ĐỒNG'}
+                      </span>
+                      <p className="text-base md:text-xl font-black text-slate-900 font-mono italic">{log.dateCheckInOut}</p>
+                    </div>
+                    <div className="bg-slate-900 text-white px-3 py-2 text-xs md:text-sm font-black">
+                      {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* Quẻ Info Box */}
+          <div className="bg-slate-900 border-4 border-slate-900 shadow-[10px_10px_0px_0px_#f59e0b] p-6 md:p-8 text-white flex flex-col gap-6">
+            <div className="flex items-center justify-between border-b-2 border-slate-700 pb-4">
+              <span className="text-xs font-black text-amber-400 uppercase tracking-[0.3em]">Quẻ giờ đẹp hên xui</span>
+              <div className="flex gap-2">
+                {[1,2,3].map(i => <div key={i} className="w-2 h-2 bg-amber-400 rounded-full animate-pulse" />)}
               </div>
-              <div className="w-px h-6 md:h-10 bg-slate-100"></div>
+            </div>
+            
+            <div className="flex justify-between items-center">
+              <div className="flex flex-col">
+                <span className="text-3xl md:text-5xl font-black font-mono tracking-tighter text-amber-400 italic">{sampleTimes.in}</span>
+                <span className="text-[10px] font-black text-slate-400 uppercase mt-2">Check-in gợi ý</span>
+              </div>
+              <div className="w-1 h-12 bg-slate-700"></div>
               <div className="flex flex-col items-end">
-                <span className="text-base md:text-2xl font-bold text-slate-700 font-mono tracking-tighter">{sampleTimes.out}</span>
-                <span className="text-[8px] md:text-[11px] font-bold text-orange-500 uppercase mt-0.5">Ra</span>
+                <span className="text-3xl md:text-5xl font-black font-mono tracking-tighter text-orange-500 italic">{sampleTimes.out}</span>
+                <span className="text-[10px] font-black text-slate-400 uppercase mt-2">Check-out gợi ý</span>
               </div>
             </div>
           </div>
         </div>
+      </div>
 
+      {/* Footer warning */}
+      <div className="mt-4 flex items-center justify-center gap-4 bg-white border-3 border-slate-900 py-3 shadow-[6px_6px_0px_0px_#0f172a] transform -rotate-1">
+        <AlertCircle className="w-5 h-5 text-red-600 fill-red-600 text-white" />
+        <p className="text-xs md:text-sm font-black uppercase text-slate-900 tracking-tighter italic">
+          Cảnh báo: Có làm thì mới có ăn - Cấm được nghịch linh tinh!
+        </p>
       </div>
     </div>
   );
