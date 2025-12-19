@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { User, LogOut, Calendar, CheckCircle2, History, Send, Clock, Settings, X, Save, AlertCircle } from 'lucide-react';
 import { CheckType, LogEntry } from '../types';
 import { generateRandomTime, formatPayloadDate, getTodayString } from '../utils';
