@@ -38,7 +38,7 @@ export const formatPayloadDate = (date: string, time: string): string => {
 };
 
 /**
- * Gets today's date in YYYY-MM-DD for input[type="date"]
+ * Gets today's date in YYYY-MM-DD
  */
 export const getTodayString = (): string => {
   const d = new Date();
@@ -46,4 +46,20 @@ export const getTodayString = (): string => {
   const month = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
+};
+
+/**
+ * Calendar helpers
+ */
+export const getDaysInMonth = (year: number, month: number) => {
+  return new Date(year, month + 1, 0).getDate();
+};
+
+export const getFirstDayOfMonth = (year: number, month: number) => {
+  return new Date(year, month, 1).getDay();
+};
+
+export const isSameDay = (date1: string, year: number, month: number, day: number) => {
+  const [y, m, d] = date1.split('-').map(Number);
+  return y === year && m === month + 1 && d === day;
 };
