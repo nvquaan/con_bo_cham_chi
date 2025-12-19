@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { User, LogOut, Calendar, CheckCircle2, History, Send, Clock, Settings, X, Edit2, Check, AlertCircle } from 'lucide-react';
+import { User, LogOut, Calendar, CheckCircle2, History, Send, Clock, Settings, X, Edit2, Check, AlertCircle, AlertTriangle } from 'lucide-react';
 import { CheckType, LogEntry } from '../types';
 import { generateRandomTime, formatPayloadDate, getTodayString } from '../utils';
 import CalendarModal from './CalendarModal';
@@ -98,13 +98,23 @@ const Dashboard: React.FC<DashboardProps> = ({ userID, username, onLogout }) => 
           dateCheckInOut: formattedDate,
           id: Math.random().toString(36).substr(2, 9),
           timestamp: Date.now()
-        }, ...prev].slice(0, 10));
+        }, ...prev].slice(0, 15));
         setLastSubmission({ time: customTime, type });
       } else {
         throw new Error(result.message || "Thất bại khi chấm công.");
       }
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Sự cố mạng.");
+      const errorMsg = error instanceof Error ? error.message : "Sự cố mạng.";
+      setErrorMessage(errorMsg);
+      // Ghi nhận lỗi vào logs
+      setLogs(prev => [{
+        userID,
+        typeCheckInOut: type,
+        dateCheckInOut: formattedDate,
+        id: Math.random().toString(36).substr(2, 9),
+        timestamp: Date.now(),
+        error: errorMsg
+      }, ...prev].slice(0, 15));
     } finally {
       setIsSubmitting(false);
     }
@@ -310,16 +320,29 @@ const Dashboard: React.FC<DashboardProps> = ({ userID, username, onLogout }) => 
                 </div>
               ) : (
                 logs.map((log) => (
-                  <div key={log.id} className="p-4 md:p-6 border-3 border-slate-900 shadow-[4px_4px_0px_0px_#0f172a] bg-white flex items-center justify-between group hover:bg-slate-50 transition-colors">
-                    <div className="flex flex-col gap-1">
-                      <span className={`text-[10px] font-black tracking-widest uppercase ${log.typeCheckInOut === CheckType.IN ? 'text-amber-600' : 'text-orange-600'}`}>
-                        {log.typeCheckInOut === CheckType.IN ? '>> VÀO CHUỒNG' : '<< RA ĐỒNG'}
-                      </span>
-                      <p className="text-base md:text-xl font-black text-slate-900 font-mono italic">{log.dateCheckInOut}</p>
+                  <div 
+                    key={log.id} 
+                    className={`p-4 md:p-6 border-3 border-slate-900 shadow-[4px_4px_0px_0px_#0f172a] flex flex-col gap-2 group transition-colors ${log.error ? 'bg-red-50' : 'bg-white hover:bg-slate-50'}`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex flex-col gap-1">
+                        <span className={`text-[10px] font-black tracking-widest uppercase ${log.error ? 'text-red-600' : (log.typeCheckInOut === CheckType.IN ? 'text-amber-600' : 'text-orange-600')}`}>
+                          {log.error ? '!! THẤT BẠI !!' : (log.typeCheckInOut === CheckType.IN ? '>> VÀO CHUỒNG' : '<< RA ĐỒNG')}
+                        </span>
+                        <p className={`text-base md:text-xl font-black font-mono italic ${log.error ? 'text-slate-400 line-through' : 'text-slate-900'}`}>
+                          {log.dateCheckInOut}
+                        </p>
+                      </div>
+                      <div className="bg-slate-900 text-white px-3 py-2 text-xs md:text-sm font-black">
+                        {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </div>
                     </div>
-                    <div className="bg-slate-900 text-white px-3 py-2 text-xs md:text-sm font-black">
-                      {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </div>
+                    {log.error && (
+                      <div className="flex items-start gap-2 pt-2 border-t-2 border-red-200">
+                        <AlertTriangle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+                        <p className="text-[11px] font-bold text-red-700 uppercase leading-tight italic">{log.error}</p>
+                      </div>
+                    )}
                   </div>
                 ))
               )}

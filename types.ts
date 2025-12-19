@@ -13,4 +13,5 @@ export interface AttendancePayload {
 export interface LogEntry extends AttendancePayload {
   id: string;
   timestamp: number;
+  error?: string;
 }
