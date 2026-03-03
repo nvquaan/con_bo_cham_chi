@@ -1,6 +1,5 @@
-
 import React, { useState } from 'react';
-import { ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X, Calendar as CalendarIcon } from 'lucide-react';
 import { getDaysInMonth, getFirstDayOfMonth, isSameDay } from '../utils';
 
 interface CalendarModalProps {
@@ -43,31 +42,33 @@ const CalendarModal: React.FC<CalendarModalProps> = ({ selectedDate, onSelect, o
   };
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-white border-4 border-slate-900 shadow-[12px_12px_0px_0px_#0f172a] w-full max-w-[360px] p-6 flex flex-col gap-6">
-        <div className="flex justify-between items-center border-b-3 border-slate-900 pb-3">
-          <h3 className="text-base font-black text-slate-900 uppercase italic">Lịch cày bừa</h3>
-          <button onClick={onClose} className="p-1 border-2 border-slate-900 hover:bg-slate-100 transition-colors">
-            <X className="w-5 h-5 text-slate-900" />
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-300">
+      <div className="bg-white/90 backdrop-blur-xl border border-pink-100 shadow-2xl rounded-3xl w-full max-w-[360px] p-6 flex flex-col gap-6 animate-in zoom-in-95 duration-300">
+        <div className="flex justify-between items-center border-b border-pink-100 pb-4">
+          <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+            <CalendarIcon className="w-5 h-5 text-pink-500" /> Chọn ngày
+          </h3>
+          <button onClick={onClose} className="p-1.5 text-slate-400 hover:text-pink-500 hover:bg-pink-50 rounded-full transition-colors">
+            <X className="w-5 h-5" />
           </button>
         </div>
 
         <div className="flex items-center justify-between">
-          <button onClick={prevMonth} className="p-2 border-2 border-slate-900 bg-amber-400 shadow-[3px_3px_0px_0px_#0f172a] hover:shadow-none hover:translate-x-0.5 hover:translate-y-0.5 transition-all">
+          <button onClick={prevMonth} className="p-2 text-slate-500 hover:text-pink-500 hover:bg-pink-50 rounded-xl transition-all">
             <ChevronLeft className="w-5 h-5" />
           </button>
           <div className="text-center">
-            <p className="text-xl font-black text-slate-900 uppercase italic">{monthNames[viewDate.month]}</p>
-            <p className="text-xs font-black text-slate-400">{viewDate.year}</p>
+            <p className="text-base font-bold text-slate-800">{monthNames[viewDate.month]}</p>
+            <p className="text-xs font-medium text-slate-400">{viewDate.year}</p>
           </div>
-          <button onClick={nextMonth} className="p-2 border-2 border-slate-900 bg-amber-400 shadow-[3px_3px_0px_0px_#0f172a] hover:shadow-none hover:translate-x-0.5 hover:translate-y-0.5 transition-all">
+          <button onClick={nextMonth} className="p-2 text-slate-500 hover:text-pink-500 hover:bg-pink-50 rounded-xl transition-all">
             <ChevronRight className="w-5 h-5" />
           </button>
         </div>
 
-        <div className="grid grid-cols-7 gap-1">
+        <div className="grid grid-cols-7 gap-1.5">
           {days.map(d => (
-            <div key={d} className="text-[10px] font-black text-slate-900 text-center py-2 uppercase tracking-tighter">{d}</div>
+            <div key={d} className="text-[10px] font-semibold text-slate-400 text-center py-1 uppercase">{d}</div>
           ))}
           {Array.from({ length: firstDay }).map((_, i) => (
             <div key={`empty-${i}`} />
@@ -80,10 +81,10 @@ const CalendarModal: React.FC<CalendarModalProps> = ({ selectedDate, onSelect, o
                 key={d}
                 onClick={() => handleDateClick(d)}
                 className={`
-                  aspect-square flex items-center justify-center border-2 text-sm font-black transition-all
+                  aspect-square flex items-center justify-center rounded-xl text-sm font-medium transition-all
                   ${isSelected 
-                    ? 'bg-amber-400 border-slate-900 shadow-[3px_3px_0px_0px_#0f172a] scale-105' 
-                    : 'border-transparent text-slate-600 hover:border-slate-300 hover:bg-slate-50'}
+                    ? 'bg-gradient-to-br from-pink-400 to-rose-400 text-white shadow-md shadow-pink-200 scale-105' 
+                    : 'text-slate-600 hover:bg-pink-50 hover:text-pink-600'}
                 `}
               >
                 {d}
@@ -99,9 +100,9 @@ const CalendarModal: React.FC<CalendarModalProps> = ({ selectedDate, onSelect, o
             onSelect(formatted);
             onClose();
           }}
-          className="py-3 border-3 border-slate-900 bg-slate-900 text-white font-black text-xs uppercase tracking-widest shadow-[5px_5px_0px_0px_#f59e0b] hover:shadow-none hover:translate-x-1 hover:translate-y-1 transition-all"
+          className="py-3 mt-2 bg-slate-50 text-slate-600 hover:bg-pink-50 hover:text-pink-600 font-semibold text-sm rounded-xl transition-all"
         >
-          Quay về hôm nay
+          Hôm nay
         </button>
       </div>
     </div>
